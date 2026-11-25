@@ -81,7 +81,9 @@ binutils m68k-elf
 
 # ---- gcc sh-elf -------------------------------------------------------------
 # Un seul processeur (SH2, gros-boutiste) : pas de multilib. Seuls le
-# compilateur C et libgcc sont construits.
+# compilateur C et libgcc sont construits. libgcc sans -j : certaines de
+# ses règles propres au SH (unwind-dw2-Os-4-200.o) oublient de dépendre
+# de libgcc_tm.h, et échouent si make les lance trop tôt.
 if [ ! -x "$PREFIX/bin/sh-elf-gcc" ]; then
   rm -rf build-gcc
   mkdir build-gcc
@@ -94,7 +96,8 @@ if [ ! -x "$PREFIX/bin/sh-elf-gcc" ]; then
       --disable-libquadmath --disable-libgomp --disable-libatomic \
       --disable-decimal-float --disable-lto --with-system-zlib $GCC_LIBS \
       >configure.log 2>&1 &&
-    make -j"$JOBS" all-gcc all-target-libgcc MAKEINFO=true >make.log 2>&1 &&
+    make -j"$JOBS" all-gcc MAKEINFO=true >make.log 2>&1 &&
+    make all-target-libgcc MAKEINFO=true >>make.log 2>&1 &&
     make install-gcc install-target-libgcc MAKEINFO=true >install.log 2>&1) ||
     { echo "Échec de gcc : voir $WORK/build-gcc/*.log" >&2; exit 1; }
 fi

@@ -34,7 +34,8 @@ make clean
 ```
 
 Options : `TITLE="MON JEU"` (nom dans l'en-tête), `ROM_SIZE=524288`,
-`EXTRA_CFLAGS=...`. Le Makefile marche avec le `make` de macOS (3.81).
+`EXTRA_CFLAGS=...`, `CROSS=` (dossier des outils, `~/opt/cross/bin` par
+défaut ; sinon ceux du `PATH`). Le Makefile marche avec le `make` de macOS (3.81).
 
 ## Organisation
 

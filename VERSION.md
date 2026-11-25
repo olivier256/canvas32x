@@ -24,8 +24,7 @@ d'AMB96 (qui, lui, reste tel quel).
   à 75 de la trame suivante ; captures identiques au rendu attendu pour
   les quatre phases du défilement.
 
-
-## 0.2 : build-cross.sh sur macOS récent
+## 0.2 : construction sur macOS récent
 
 Corrections trouvées en construisant les outils sur un Mac Apple Silicon.
 
@@ -35,3 +34,7 @@ Corrections trouvées en construisant les outils sur un Mac Apple Silicon.
 - libgcc est compilée sans `-j` : certaines règles propres au SH
   (`unwind-dw2-Os-4-200.o`) ne dépendent pas de `libgcc_tm.h` et échouent
   si make les lance trop tôt, ce qui arrive avec beaucoup de cœurs.
+- Makefile : les outils de `~/opt/cross/bin` (variable `CROSS`) sont
+  appelés par leur chemin complet. Le make de macOS (3.81) lance les
+  commandes simples sans tenir compte du `PATH` modifié dans le Makefile :
+  `sh-elf-gcc` restait introuvable.

@@ -25,11 +25,13 @@ KIT   := kit32x
 BUILD := build
 
 # ---- Outils ----------------------------------------------------------------
-# Le compilateur construit par kit32x/build-cross.sh est dans ~/opt/cross.
-export PATH := $(HOME)/opt/cross/bin:$(PATH)
-
-SH     ?= sh-elf-
-M68K   ?= $(if $(shell command -v m68k-elf-as 2>/dev/null),m68k-elf-,m68k-linux-gnu-)
+# Ceux construits par kit32x/build-cross.sh (dans CROSS) s'ils existent,
+# sinon ceux du PATH (m68k-linux-gnu- : paquet Ubuntu). Chemin complet :
+# le make de macOS (3.81) ne tient pas compte d'un PATH modifié ici.
+CROSS  ?= $(HOME)/opt/cross/bin
+SH     ?= $(if $(wildcard $(CROSS)/sh-elf-gcc),$(CROSS)/sh-elf-,sh-elf-)
+M68K   ?= $(if $(wildcard $(CROSS)/m68k-elf-as),$(CROSS)/m68k-elf-,$(if \
+            $(shell command -v m68k-elf-as 2>/dev/null),m68k-elf-,m68k-linux-gnu-))
 HOSTCC ?= cc
 
 # ---- Options de compilation SH2 --------------------------------------------
