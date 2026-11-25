@@ -1,0 +1,143 @@
+--- a/32x_video.c	2026-09-12 06:19:37.000000000 +0200
++++ b/32x_video.c	2026-11-25 07:12:07.459626665 +0100
+@@ -132,10 +132,11 @@
+ 			if (vid->vcounter >= vblank_start) {
+ 				if (!(vid->regs[S32X_VID_FB_CTRL] & S32X_VID_BIT_VBLK)) {
+ 					vid->regs[S32X_VID_FB_CTRL] |= S32X_VID_BIT_VBLK;
++					if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "VBLK debut v=%d\n", vid->vcounter);
+ 					vid->main_vint_pending = 1;
+ 					vid->sub_vint_pending = 1;
+ 					if (vid->flip_pending) {
+-						vid->flip_pending = 0;
++						vid->flip_pending = 0; if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "FS swap au VBlank v=%d\n", vid->vcounter);
+ 						uint8_t *tmp = vid->front;
+ 						vid->front = vid->back;
+ 						vid->back = tmp;
+@@ -149,7 +150,7 @@
+ 					vid->main_vint_pending = 1;
+ 					vid->sub_vint_pending = 1;					
+ 					if (vid->flip_pending) {
+-						vid->flip_pending = 0;
++						vid->flip_pending = 0; if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "FS swap au VBlank v=%d\n", vid->vcounter);
+ 						uint8_t *tmp = vid->front;
+ 						vid->front = vid->back;
+ 						vid->back = tmp;
+@@ -565,9 +566,9 @@
+ 				uint8_t *tmp = video->front;
+ 				video->front = video->back;
+ 				video->back = tmp;
+-				video->flip_pending = 0;
++				video->flip_pending = 0; if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "FS swap immediat v=%d\n", video->vcounter);
+ 			} else {
+-				video->flip_pending = 1;
++				video->flip_pending = 1; if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "FS demande v=%d\n", video->vcounter);
+ 				new &= ~S32X_VID_BIT_FS;
+ 				new |= old & S32X_VID_BIT_FS;
+ 			}
+@@ -610,9 +611,9 @@
+ 				uint8_t *tmp = video->front;
+ 				video->front = video->back;
+ 				video->back = tmp;
+-				video->flip_pending = 0;
++				video->flip_pending = 0; if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "FS swap immediat v=%d\n", video->vcounter);
+ 			} else {
+-				video->flip_pending = 1;
++				video->flip_pending = 1; if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "FS demande v=%d\n", video->vcounter);
+ 				new &= ~S32X_VID_BIT_FS;
+ 				new |= old & S32X_VID_BIT_FS;
+ 			}
+@@ -646,9 +647,9 @@
+ 				uint8_t *tmp = video->front;
+ 				video->front = video->back;
+ 				video->back = tmp;
+-				video->flip_pending = 0;
++				video->flip_pending = 0; if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "FS swap immediat v=%d\n", video->vcounter);
+ 			} else {
+-				video->flip_pending = 1;
++				video->flip_pending = 1; if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "FS demande v=%d\n", video->vcounter);
+ 				new &= ~S32X_VID_BIT_FS;
+ 				new |= old & S32X_VID_BIT_FS;
+ 			}
+@@ -690,9 +691,9 @@
+ 				uint8_t *tmp = video->front;
+ 				video->front = video->back;
+ 				video->back = tmp;
+-				video->flip_pending = 0;
++				video->flip_pending = 0; if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "FS swap immediat v=%d\n", video->vcounter);
+ 			} else {
+-				video->flip_pending = 1;
++				video->flip_pending = 1; if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "FS demande v=%d\n", video->vcounter);
+ 				new &= ~S32X_VID_BIT_FS;
+ 				new |= old & S32X_VID_BIT_FS;
+ 			}
+--- a/genesis.c	2026-09-12 06:19:37.000000000 +0200
++++ b/genesis.c	2026-11-25 10:28:08.364250692 +0100
+@@ -4,6 +4,7 @@
+  BlastEm is free software distributed under the terms of the GNU General Public License version 3 or greater. See COPYING for full license text.
+ */
+ #include "genesis.h"
++#include "32x.h"
+ #include "segacd.h"
+ #include "blastem.h"
+ #include "nor.h"
+@@ -612,6 +613,14 @@
+ 
+ 		if(exit_after){
+ 			if (elapsed >= exit_after) {
++				if (gen->mars && getenv("BLASTEM_SH2_STATE")) {
++					s32x *m = gen->mars;
++					fprintf(stderr, "master PC=%08X PR=%08X SR=%08X  slave PC=%08X PR=%08X SR=%08X\n",
++						m->main->pc, m->main->pr, m->main->sr, m->sub->pc, m->sub->pr, m->sub->sr);
++					fprintf(stderr, "COMM:");
++					for (int i = S32X_COMM_0; i <= S32X_COMM_7; i++) fprintf(stderr, " %04X", m->regs[i]);
++					fprintf(stderr, "\nFBCR=%04X MODE=%04X\n", m->video.regs[S32X_VID_FB_CTRL], m->video.regs[S32X_VID_MODE]);
++				}
+ 				exit(0);
+ 			} else {
+ 				exit_after -= elapsed;
+@@ -889,6 +898,14 @@
+ 
+ 		if(exit_after){
+ 			if (elapsed >= exit_after) {
++				if (gen->mars && getenv("BLASTEM_SH2_STATE")) {
++					s32x *m = gen->mars;
++					fprintf(stderr, "master PC=%08X PR=%08X SR=%08X  slave PC=%08X PR=%08X SR=%08X\n",
++						m->main->pc, m->main->pr, m->main->sr, m->sub->pc, m->sub->pr, m->sub->sr);
++					fprintf(stderr, "COMM:");
++					for (int i = S32X_COMM_0; i <= S32X_COMM_7; i++) fprintf(stderr, " %04X", m->regs[i]);
++					fprintf(stderr, "\nFBCR=%04X MODE=%04X\n", m->video.regs[S32X_VID_FB_CTRL], m->video.regs[S32X_VID_MODE]);
++				}
+ 				exit(0);
+ 			} else {
+ 				exit_after -= elapsed;
+--- a/vdp.c	2026-09-12 06:19:37.000000000 +0200
++++ b/vdp.c	2026-11-25 07:12:07.461767874 +0100
+@@ -3103,6 +3103,28 @@
+ 			context->fb = NULL;
+ 		}
+ 		vdp_update_per_frame_debug(context);
++		if (getenv("BLASTEM_FS_LOG")) fprintf(stderr, "MD trame %u (vcounter=%d)\n", context->frame, context->vcounter);
++		if (headless && getenv("BLASTEM_DUMP_DIR")) {
++			const char *ev = getenv("BLASTEM_DUMP_EVERY");
++			uint32_t every = ev ? atoi(ev) : 60;
++			if (every && context->frame % every == 0) {
++				char path[512];
++				snprintf(path, sizeof(path), "%s/frame_%05u.ppm", getenv("BLASTEM_DUMP_DIR"), context->frame);
++				FILE *f = fopen(path, "wb");
++				if (f) {
++					uint32_t h = context->inactive_start + context->border_top + context->border_bot;
++					fprintf(f, "P6\n%d %u\n255\n", LINEBUF_SIZE, h);
++					for (uint32_t y = 0; y < h; y++) {
++						pixel_t *row = (pixel_t *)(((char *)context->fb) + context->output_pitch * y);
++						for (int x = 0; x < LINEBUF_SIZE; x++) {
++							uint32_t c = row[x];
++							fputc((c >> 16) & 0xFF, f); fputc((c >> 8) & 0xFF, f); fputc(c & 0xFF, f);
++						}
++					}
++					fclose(f);
++				}
++			}
++		}
+ 		context->h40_lines = 0;
+ 		context->frame++;
+ 		context->output_lines = 0;

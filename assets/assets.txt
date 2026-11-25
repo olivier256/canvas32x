@@ -1,0 +1,7 @@
+# Images du projet, converties par make (kit32x/img2c) en build/assets.c/.h
+#   plane  nom  fichier  : plan de tiles 16x16 (dimensions en tiles :
+#                          puissances de 2), variable asset_<nom> (Tilemap)
+#   sprite nom  fichier  : sprite, index 0 transparent (Sprite)
+# Toutes les images partagent la palette de la première (asset_palette).
+plane   fond      fond.bmp
+sprite  vaisseau  vaisseau.bmp
