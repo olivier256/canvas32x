@@ -23,3 +23,15 @@ d'AMB96 (qui, lui, reste tel quel).
 - Résultat dans BlastEm 1.0.0 : 60 images/s, dessin fini vers la ligne 40
   à 75 de la trame suivante ; captures identiques au rendu attendu pour
   les quatre phases du défilement.
+
+
+## 0.2 : build-cross.sh sur macOS récent
+
+Corrections trouvées en construisant les outils sur un Mac Apple Silicon.
+
+- binutils et gcc utilisent la zlib du système (`--with-system-zlib`) : la
+  copie qu'ils embarquent est trop ancienne pour le SDK des macOS récents
+  (`fdopen` redéfini, erreur dans `zutil.c`).
+- libgcc est compilée sans `-j` : certaines règles propres au SH
+  (`unwind-dw2-Os-4-200.o`) ne dépendent pas de `libgcc_tm.h` et échouent
+  si make les lance trop tôt, ce qui arrive avec beaucoup de cœurs.

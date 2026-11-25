@@ -10,9 +10,11 @@
 # Xcode (xcode-select --install) et, par Homebrew : gmp mpfr libmpc.
 #     brew install gmp mpfr libmpc
 # Linux (Debian, Ubuntu) : apt install build-essential libgmp-dev
-#     libmpfr-dev libmpc-dev curl xz-utils
+#     libmpfr-dev libmpc-dev zlib1g-dev curl xz-utils
 #
 # Usage : kit32x/build-cross.sh        (20 à 40 minutes selon la machine)
+# Après un échec : effacer le dossier build-* indiqué dans ~/opt/cross-build
+# et relancer ; les sources déjà téléchargées sont gardées.
 # Ensuite, le Makefile du projet trouve les outils tout seul (il ajoute
 # ~/opt/cross/bin au PATH).
 # =========================================================================
@@ -55,6 +57,9 @@ export PATH="$PREFIX/bin:$PATH"
 
 # ---- binutils ---------------------------------------------------------------
 # MAKEINFO=true : pas besoin de texinfo pour la documentation.
+# --with-system-zlib : la copie de zlib fournie avec binutils et gcc est
+# trop ancienne pour le SDK des macOS récents (fdopen redéfini) ; celle du
+# système convient partout.
 binutils() {   # binutils cible
   if [ ! -x "$PREFIX/bin/$1-as" ]; then
     rm -rf "build-binutils-$1"
@@ -62,7 +67,8 @@ binutils() {   # binutils cible
     (cd "build-binutils-$1" &&
       "../$BINUTILS/configure" --target="$1" --prefix="$PREFIX" \
         --disable-nls --disable-werror --disable-gdb --disable-sim \
-        --disable-gprofng --disable-gprof >configure.log 2>&1 &&
+        --disable-gprofng --disable-gprof --with-system-zlib \
+        >configure.log 2>&1 &&
       make -j"$JOBS" MAKEINFO=true >make.log 2>&1 &&
       make install MAKEINFO=true >install.log 2>&1) ||
       { echo "Échec de binutils $1 : voir $WORK/build-binutils-$1/*.log" >&2
@@ -86,7 +92,8 @@ if [ ! -x "$PREFIX/bin/sh-elf-gcc" ]; then
       --enable-languages=c --without-headers --with-newlib \
       --disable-nls --disable-shared --disable-threads --disable-libssp \
       --disable-libquadmath --disable-libgomp --disable-libatomic \
-      --disable-decimal-float --disable-lto $GCC_LIBS >configure.log 2>&1 &&
+      --disable-decimal-float --disable-lto --with-system-zlib $GCC_LIBS \
+      >configure.log 2>&1 &&
     make -j"$JOBS" all-gcc all-target-libgcc MAKEINFO=true >make.log 2>&1 &&
     make install-gcc install-target-libgcc MAKEINFO=true >install.log 2>&1) ||
     { echo "Échec de gcc : voir $WORK/build-gcc/*.log" >&2; exit 1; }
