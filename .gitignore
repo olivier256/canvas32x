@@ -1,2 +1,5 @@
 build/
 *.32x
+.DS_Store
+kit32x/.DS_Store
+canvas32x.code-workspace

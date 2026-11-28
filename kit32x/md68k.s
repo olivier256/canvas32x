@@ -31,7 +31,7 @@
         .equ    VDP_DATA,   0xC00000
         .equ    VDP_CTRL,   0xC00004
 
-        .equ    ADAPTER,    0xA15100    | octet fort : FM (bit 7)
+        .equ    ACR,        0xA15100    | Adapter Control Register
         .equ    COMM0,      0xA15120    | COMM0-1 (mot long)
 
         .equ    M_OK,       0x4D5F4F4B  | 'M_OK'
@@ -132,23 +132,36 @@ init_32x:
         move.l  #0xC0000000, (%a1)      | CRAM 0
         move.w  #0x0000, VDP_DATA       | noir
 
-        | Attendre la BootROM 32X, puis donner le VDP 32X aux SH2
+.waitForM_OK:
 1:      cmp.l   #M_OK, COMM0
-        bne.s   1b
-        ori.b   #0x80, ADAPTER          | FM = 1
+        bne.s   .waitForM_OK
 
-        | Attendre que le Master ait démarré (il efface 'M_OK')
+        ori.b   #0x80, ACR              | Set FM, VDP Access Authorization = SH2
+
+| A1_5100h FM - - - - - - - REN - - - - - RES ADEN
+| FM: VDP Access Authorization
+|         0: MD (Initial value)
+|         1: SH2
+
+
+.waitForMasterStarted:
 1:      cmp.l   #M_OK, COMM0
-        beq.s   1b
+        beq.s   .waitForMasterStarted
 
 | ---- Boucle : une lecture de manette par image ----------------------------
 
 main_loop:
         | Attendre le début du VBlank du VDP Mega Drive (bit 3 du statut)
+| $C00004 * * * * * * EMPT FULL     F SOVR C ODD VB HB DMA PAL
+| VB 
+|       1: During V blanking
+|       0:
+.waitForDisplay:
 1:      btst    #3, VDP_CTRL+1
-        bne.s   1b                      | encore dans le VBlank précédent
+        bne.s   .waitForDisplay          | encore dans le VBlank précédent
+.waitForVBlank:
 1:      btst    #3, VDP_CTRL+1
-        beq.s   1b                      | affichage en cours
+        beq.s   .waitForVBlank           | affichage en cours
 
         .ifdef  AUTOPAD
         move.w  #AUTOPAD, %d0           | test : manette simulée (make AUTOPAD=)
