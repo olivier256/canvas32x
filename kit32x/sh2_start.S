@@ -76,36 +76,35 @@ SYMBOL(_start):
         mov.b   r0, @(3, r1)
 
         /* Cache : coupé, purgé, puis rallumé (4 voies, 4 Ko) */
-        mov.l   ccr_address, r1         /* FFFF FE92h */
+        mov.l   CCR, r1
         mov     #0, r0
         mov.b   r0, @r1
-        mov     #0x10, r0               /* CP : purge */
+        mov     #0x10, r0               /* Set CP : Cache purge */
         mov.b   r0, @r1
-        mov     #0x01, r0               /* CE : cache actif */
+        mov     #0x01, r0               /* Set CE : Cache Enabled */
         mov.b   r0, @r1
 
         /* Quel CPU ? Le VBR du Slave vaut 0600 0120h (bit 5 à 1) */
         stc     vbr, r0
+		mov.l	@(4,r0),r15
         tst     #0x20, r0
         bf      start_slave
 
 /* ---- Master ------------------------------------------------------------ */
 
 start_master:
-        mov.l   master_stack, r15
 
-        /* Attendre que le 68000 donne le VDP aux SH2 (FM, bit 15 de
-           2000 4000h, soit le bit 7 de l'octet 2000 4000h) */
-        mov.l   sys_regs, r1            /* 2000 4000h */
+        mov.l   IMR, r1            /* 2000 4000h */
+.waitForFMSet:
 1:      mov.b   @r1, r0
         tst     #0x80, r0
-        bt      1b
+        bt      .waitForFMSet
 
-        /* Attendre que le Slave soit prêt : COMM2-3 = 'S_OK' */
         mov.l   s_ok, r2
+.waitForS_OK:
 1:      mov.l   @(0x24, r1), r0
         cmp/eq  r2, r0
-        bf      1b
+        bf      .waitForS_OK
 
         /* Effacer la BSS (variables C non initialisées) */
         mov.l   bss_start, r2
@@ -118,7 +117,7 @@ start_master:
 2:      cmp/hs  r3, r2
         bf      1b
 
-        /* Libérer le Slave et le 68000 : COMM0-1 = 0 */
+        /* Clear CommPort 0-1 */
         mov     #0, r0
         mov.l   r0, @(0x20, r1)
 
@@ -131,16 +130,15 @@ start_master:
 /* ---- Slave ------------------------------------------------------------- */
 
 start_slave:
-        mov.l   slave_stack, r15
 
-        /* Attendre que le Master ait effacé 'M_OK' */
-        mov.l   sys_regs, r1
+        mov.l   IMR, r1
         mov.l   m_ok, r2
+.waitForMStarted:
 1:      mov.l   @(0x20, r1), r0
         cmp/eq  r2, r0
-        bt      1b
+        bt      .waitForMStarted
 
-        /* COMM2-3 = 0 */
+        /* Clear Comm Port 2-3 */
         mov     #0, r0
         mov.l   r0, @(0x24, r1)
 
@@ -152,14 +150,27 @@ exception_halt:
         bra     exception_halt
         nop
 
-        .align  2
+
+
+        .align  4
 frt_base:       .long   0xFFFFFE10
-ccr_address:    .long   0xFFFFFE92
-sys_regs:       .long   0x20004000
-master_stack:   .long   0x06040000
-slave_stack:    .long   0x0603C000
-m_ok:           .long   0x4D5F4F4B      /* 'M_OK' */
-s_ok:           .long   0x535F4F4B      /* 'S_OK' */
+
+/*
+Cache Control Register
+W1 W0 — CP TW OD ID CE
+*/
+CCR:            .long   0xFFFFFE92
+
+/*
+Interrupt Mask Register (2000_4000h)
+FM - - - - ADEN CART HEN   - - - - V H CMD PWM
+    FM: VDP Access Authorization
+        0: MEGA DRIVE (initial value)
+        1: SH2
+*/
+IMR:            .long   0x20004000
+m_ok:	        .ascii  "M_OK"
+s_ok:           .ascii  "S_OK"
 bss_start:      .long   __bss_start   /* symboles du script ld */
 bss_end:        .long   __bss_end
 master_main:    .long   SYMBOL(master_main)
